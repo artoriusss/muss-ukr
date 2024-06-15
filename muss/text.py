@@ -77,6 +77,7 @@ def get_sentence_tokenizer(language='en'):
         'pt': 'portuguese',
         'it': 'italian',
         'de': 'german',
+        'uk': 'russian'
     }[language]
     return nltk.data.load(f'tokenizers/punkt/{language}.pickle')
 
@@ -223,6 +224,7 @@ def get_spacy_model(language='en', size='md'):
         'pt': f'pt_core_news_{size}',
         'it': f'it_core_news_{size}',
         'de': f'de_core_news_{size}',
+        'uk': f'uk_core_news_trf'
     }[language]
     return spacy.load(model_name)  # python -m spacy download en_core_web_sm
 

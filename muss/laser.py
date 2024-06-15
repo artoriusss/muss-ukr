@@ -1,9 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 import numpy as np
 
 from muss.resources.paths import LASER_DIR
@@ -26,13 +20,15 @@ def get_laser_embeddings(
     max_tokens=6000,
     normalize_l2=False,
     n_encoding_jobs=10,
+    batch_size=16,  # Add batch_size parameter
+    device='cuda',  # Add device parameter (use 'cpu' to avoid CUDA memory issues)
 ):
     prepare_laser()
     from embed import SentenceEncoder  # noqa: E402
     from text_processing import Token, BPEfastApply  # noqa: E402
 
-    def get_laser_encoder(encoder_path, max_tokens=12000):
-        return SentenceEncoder(encoder_path, max_sentences=None, max_tokens=max_tokens, cpu=False)
+    def get_laser_encoder(encoder_path, max_tokens=12000, device='cuda'):
+        return SentenceEncoder(encoder_path, max_sentences=batch_size, max_tokens=max_tokens, cpu=(device == 'cpu'))
 
     def encode_file(input_filepath, output_filepath, language, bpe_codes_path):
         tokenized_filepath = get_temp_filepath()
@@ -52,8 +48,12 @@ def get_laser_embeddings(
         bpe_filepath = get_temp_filepath()
         parallel_file_encoder(input_filepath, bpe_filepath)
     with log_action('Geting LASER embedding'):
-        encoder = get_laser_encoder(encoder_path, max_tokens=max_tokens)
-        embeddings = encoder.encode_sentences(read_lines(bpe_filepath))
+        encoder = get_laser_encoder(encoder_path, max_tokens=max_tokens, device=device)
+        embeddings = []
+        for batch in batchify(read_lines(bpe_filepath), batch_size):
+            encoded_batch = encoder.encode_sentences(batch)
+            embeddings.append(encoded_batch)
+        embeddings = np.vstack(embeddings)
         input_filepath.unlink()
         bpe_filepath.unlink()
         assert embeddings.shape[0] == len(sentences)

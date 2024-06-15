@@ -38,7 +38,7 @@ def split_ccnet_shard(shard_path, output_dir, n_docs_per_subshard=10000):
 
     if output_dir.exists():
         return
-    assert str(shard_path).endswith('.json.gz')
+    assert str(shard_path).endswith('.json.gz'), f"The file path does not end with '.json.gz': {shard_path}"
     shard_path = Path(shard_path)
     output_dir.mkdir(exist_ok=True, parents=True)
     with gzip.open(shard_path, 'rt') as f:
@@ -62,6 +62,7 @@ def has_low_lm_prob(text, language):
         'fr': (RESOURCES_DIR / 'models/language_models/kenlm_frwiki', -0.6),
         'es': (RESOURCES_DIR / 'models/language_models/kenlm_ccnet_es', -0.8),
         'it': (RESOURCES_DIR / 'models/language_models/kenlm_ccnet_it', -0.8),
+        'uk': (RESOURCES_DIR / 'models/language_models/wikipedia', -0.8)
     }[language]
 
     if model_dir.exists():
@@ -90,16 +91,18 @@ def sentence_tokenize_document(document, language):
     return sentences
 
 
-def sentence_tokenize_subshard(subshard_path, sentences_path, language):
-    if not sentences_path.exists():
-        with log_action('Sentence tokenization'):
-            with gzip.open(sentences_path, 'wt', compresslevel=1) as f:
-                for json_document in tqdm(yield_json_documents_from_compressed(subshard_path), desc='documents'):
-                    sentences = sentence_tokenize_document(json_document.pop('raw_content'), language=language)
-                    for sentence in sentences:
-                        f.write(f'{sentence}\n')
-        cached_count_lines(sentences_path)  # Cache line count
-    return sentences_path
+def sentence_tokenize_subshard(shard_path, output_path, language):
+    sentences = []
+    with gzip.open(shard_path, 'rt', encoding='utf-8') as f:
+        for line in f:
+            json_document = json.loads(line)
+            sentence = json_document.get('sentence', None)
+
+            if sentence is not None:
+                sentences.extend(sentence_tokenize_document(sentence, language=language))
+    with gzip.open(output_path, 'wt', encoding='utf-8') as f:
+        for sentence in sentences:
+            f.write(sentence + '\n')
 
 
 def get_subshard_paths(raw_original_dir):

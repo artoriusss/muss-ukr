@@ -2,8 +2,9 @@ import deepl
 import time 
 import random
 from deep_translator import GoogleTranslator
+import os
 
-auth_key = '956fd93f-7ff3-4cc9-8ecd-a1c091cf25cd:fx'  # Replace with your DeepL API key
+auth_key = os.get_env('DPL_API_KEY')
 dpl = deepl.Translator(auth_key)
 
 uk_to_en_gt = GoogleTranslator(source='uk', target='en')
@@ -19,18 +20,6 @@ def gt(translator, text):
     result = translator.translate(text)
     time.sleep(0.5 + random.random())
     return result
-
-# if __name__ == '__main__':
-#     # Example sentence
-#     example_sentence = "Це тестове речення."
-    
-#     # Translate from Ukrainian to American English
-#     translated_to_en = safe_translate(dpl, example_sentence, source_lang="UK", target_lang="EN-US")
-#     print(f"Translated to English: {translated_to_en}")
-    
-#     # Translate back from American English to Ukrainian
-#     translated_back_to_uk = safe_translate(dpl, translated_to_en, source_lang="EN", target_lang="UK")
-#     print(f"Translated back to Ukrainian: {translated_back_to_uk}")
 
 if __name__ == '__main__':
     example_sentence = "Це тестове речення."
